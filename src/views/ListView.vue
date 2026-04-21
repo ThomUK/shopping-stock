@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stockGroups, catalogGroups, store } from '../state/store'
-import { manualAdjustStock, decrementShoppingKey, removeShoppingKey } from '../state/mutations'
+import { manualAdjustStock, removeShoppingKey } from '../state/mutations'
 import EditItem from '../components/EditItem.vue'
 
 type Tab = 'stock' | 'shopping' | 'products'
@@ -33,6 +33,10 @@ const shoppingFlat = computed(() =>
     }),
 )
 
+const removing = ref<string | null>(null)
+
+const removingItem = computed(() => (removing.value ? store.shoppingList[removing.value] ?? null : null))
+
 watch(tab, () => { expanded.value = new Set() })
 
 function toggle(category: string) {
@@ -40,6 +44,30 @@ function toggle(category: string) {
   else expanded.value.add(category)
   expanded.value = new Set(expanded.value)
 }
+
+function askRemove(key: string) {
+  removing.value = key
+}
+
+function cancelRemove() {
+  removing.value = null
+}
+
+function confirmRemove() {
+  if (!removing.value) return
+  removeShoppingKey(removing.value)
+  removing.value = null
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && removing.value) {
+    e.preventDefault()
+    cancelRemove()
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
@@ -88,19 +116,16 @@ function toggle(category: string) {
     <section class="card" v-if="tab === 'shopping' && !editing">
       <h2>Shopping list</h2>
       <p class="muted" v-if="shoppingFlat.length === 0">Empty. Items are added when you scan in "Using up" mode.</p>
-      <div class="item" v-for="{ key, item } in shoppingFlat" :key="key">
-        <div>
-          <div><strong>{{ item.label }}</strong></div>
+      <div class="shopping-row" v-for="{ key, item } in shoppingFlat" :key="key">
+        <div class="shopping-main">
+          <div class="shopping-label">{{ item.label }}</div>
           <div class="meta" v-if="!item.category">Uncategorized</div>
         </div>
-        <div class="row">
-          <span class="pill">need {{ item.qty }}</span>
-          <button class="ghost" @click="decrementShoppingKey(key)" aria-label="Decrement">−1</button>
-          <button class="ghost" @click="removeShoppingKey(key)" aria-label="Remove">✕</button>
-        </div>
+        <div class="shopping-qty" aria-label="Need">{{ item.qty }}</div>
+        <button class="icon-btn" @click="askRemove(key)" aria-label="Remove from shopping list">✕</button>
       </div>
-      <p class="muted" v-if="shoppingFlat.length > 0" style="margin-top: .5rem">
-        To tick items off, scan them in "Stocking up" mode — any brand in the matching category decrements the need.
+      <p class="muted" v-if="shoppingFlat.length > 0" style="margin-top: .75rem">
+        Scan items in "Stocking up" mode to decrement a category's need automatically.
       </p>
     </section>
 
@@ -129,5 +154,19 @@ function toggle(category: string) {
         </div>
       </div>
     </section>
+
+    <div v-if="removing && removingItem" class="modal-backdrop" @click.self="cancelRemove">
+      <div class="modal card col" role="dialog" aria-modal="true" aria-labelledby="remove-title">
+        <h2 id="remove-title">Remove from shopping list?</h2>
+        <p>Remove this item from the shopping list, either because it is purchased, or no longer required.</p>
+        <p class="muted">
+          <strong>{{ removingItem.label }}</strong> — need {{ removingItem.qty }}
+        </p>
+        <div class="row between">
+          <button class="ghost" @click="cancelRemove">Cancel</button>
+          <button class="danger" @click="confirmRemove">Remove</button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>

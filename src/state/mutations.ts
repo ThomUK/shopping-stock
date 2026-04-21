@@ -207,13 +207,3 @@ export function removeShoppingKey(key: string): void {
   markPathDirty('shopping-list.json')
   scheduleSync()
 }
-
-export function decrementShoppingKey(key: string): void {
-  const item = store.shoppingList[key]
-  if (!item) return
-  const nextQty = Math.max(0, item.qty - 1)
-  if (nextQty === 0) delete store.shoppingList[key]
-  else store.shoppingList[key] = { ...item, qty: nextQty }
-  markPathDirty('shopping-list.json')
-  scheduleSync()
-}
