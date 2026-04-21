@@ -176,6 +176,33 @@ label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .
   box-shadow: 0 4px 12px rgba(0,0,0,.25);
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+  animation: fade .12s ease-out;
+}
+.modal {
+  max-width: 440px;
+  width: 100%;
+  margin: 0;
+  background: var(--bg);
+  box-shadow: 0 20px 50px rgba(0,0,0,.35);
+}
+.modal code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .88em;
+  background: var(--card);
+  padding: 0 .25rem;
+  border-radius: .25rem;
+}
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
 .tiles { gap: .5rem; }
 .tile {
   flex: 1;

@@ -176,6 +176,23 @@ function relabelShoppingForBarcode(barcode: string, product: CatalogEntry): void
   }
 }
 
+export function deleteCatalogEntry(barcode: string): void {
+  const existing = store.catalog[barcode]
+  if (!existing) return
+  delete store.catalog[barcode]
+  markPathDirty('catalog.json')
+  if (store.stock[barcode]) {
+    delete store.stock[barcode]
+    markPathDirty('stock.json')
+  }
+  const bcKey = `bc:${barcode}`
+  if (store.shoppingList[bcKey]) {
+    delete store.shoppingList[bcKey]
+    markPathDirty('shopping-list.json')
+  }
+  scheduleSync()
+}
+
 export function manualAdjustStock(barcode: string, delta: number): void {
   const item = store.stock[barcode]
   if (!item) return
