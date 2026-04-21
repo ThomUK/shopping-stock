@@ -1,5 +1,6 @@
 import { reactive, computed } from 'vue'
 import type { CatalogEntry, ScanMode, ShoppingItem, StockItem } from '../types'
+import { UNCATEGORIZED } from '../types'
 
 interface StoreState {
   mode: ScanMode
@@ -23,16 +24,80 @@ export const store = reactive<StoreState>({
   pendingCount: 0,
 })
 
-export const stockEntries = computed(() =>
-  Object.entries(store.stock)
-    .filter(([, v]) => v.qty > 0)
-    .sort(([, a], [, b]) => a.name.localeCompare(b.name)),
+export interface StockGroup {
+  category: string
+  total: number
+  items: Array<{ barcode: string; item: StockItem }>
+}
+
+export interface ShoppingGroup {
+  category: string
+  total: number
+  items: Array<{ key: string; item: ShoppingItem }>
+}
+
+function categoryFor(barcode: string): string {
+  return store.catalog[barcode]?.category || UNCATEGORIZED
+}
+
+export const stockGroups = computed<StockGroup[]>(() => {
+  const groups = new Map<string, StockGroup>()
+  for (const [barcode, item] of Object.entries(store.stock)) {
+    if (item.qty <= 0) continue
+    const category = categoryFor(barcode)
+    let g = groups.get(category)
+    if (!g) {
+      g = { category, total: 0, items: [] }
+      groups.set(category, g)
+    }
+    g.total += item.qty
+    g.items.push({ barcode, item })
+  }
+  for (const g of groups.values()) {
+    g.items.sort((a, b) => a.item.name.localeCompare(b.item.name))
+  }
+  return Array.from(groups.values()).sort(sortGroups)
+})
+
+export const shoppingGroups = computed<ShoppingGroup[]>(() => {
+  const groups = new Map<string, ShoppingGroup>()
+  for (const [key, item] of Object.entries(store.shoppingList)) {
+    if (item.qty <= 0) continue
+    const category = item.category || UNCATEGORIZED
+    let g = groups.get(category)
+    if (!g) {
+      g = { category, total: 0, items: [] }
+      groups.set(category, g)
+    }
+    g.total += item.qty
+    g.items.push({ key, item })
+  }
+  for (const g of groups.values()) {
+    g.items.sort((a, b) => a.item.label.localeCompare(b.item.label))
+  }
+  return Array.from(groups.values()).sort(sortGroups)
+})
+
+function sortGroups(a: { category: string }, b: { category: string }): number {
+  if (a.category === UNCATEGORIZED) return 1
+  if (b.category === UNCATEGORIZED) return -1
+  return a.category.localeCompare(b.category)
+}
+
+export const knownCategories = computed<string[]>(() => {
+  const set = new Set<string>()
+  for (const entry of Object.values(store.catalog)) {
+    if (entry.category) set.add(entry.category)
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b))
+})
+
+export const stockTotal = computed(() =>
+  Object.values(store.stock).reduce((s, v) => s + (v.qty > 0 ? v.qty : 0), 0),
 )
 
-export const shoppingEntries = computed(() =>
-  Object.entries(store.shoppingList)
-    .filter(([, v]) => v.qty > 0)
-    .sort(([, a], [, b]) => a.name.localeCompare(b.name)),
+export const shoppingTotal = computed(() =>
+  Object.values(store.shoppingList).reduce((s, v) => s + (v.qty > 0 ? v.qty : 0), 0),
 )
 
 if (typeof window !== 'undefined') {

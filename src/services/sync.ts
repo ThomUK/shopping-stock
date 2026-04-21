@@ -55,7 +55,7 @@ function serialize(path: DataPath): string {
     return JSON.stringify(payload, null, 2) + '\n'
   }
   if (path === 'shopping-list.json') {
-    const payload: ShoppingListFile = { version: 1, items: { ...store.shoppingList } }
+    const payload: ShoppingListFile = { version: 2, items: { ...store.shoppingList } }
     return JSON.stringify(payload, null, 2) + '\n'
   }
   const payload: CatalogFile = { version: 1, products: { ...store.catalog } }
@@ -109,12 +109,70 @@ export async function hydrateFromRepo(): Promise<void> {
 function applyJsonToStore(path: DataPath, json: string): void {
   try {
     const parsed = JSON.parse(json)
-    if (path === 'stock.json' && parsed.items) store.stock = parsed.items
-    else if (path === 'shopping-list.json' && parsed.items) store.shoppingList = parsed.items
-    else if (path === 'catalog.json' && parsed.products) store.catalog = parsed.products
+    if (path === 'stock.json' && parsed.items) {
+      store.stock = parsed.items
+    } else if (path === 'shopping-list.json' && parsed.items) {
+      const migrated = migrateShoppingList(parsed)
+      store.shoppingList = migrated.items
+      if (migrated.didMigrate) dirty.add('shopping-list.json')
+    } else if (path === 'catalog.json' && parsed.products) {
+      const migrated = migrateCatalog(parsed)
+      store.catalog = migrated.products
+      if (migrated.didMigrate) dirty.add('catalog.json')
+    }
   } catch (err) {
     console.warn(`parse ${path} failed`, err)
   }
+}
+
+function migrateShoppingList(parsed: { version?: number; items: Record<string, unknown> }): {
+  items: Record<string, import('../types').ShoppingItem>
+  didMigrate: boolean
+} {
+  const out: Record<string, import('../types').ShoppingItem> = {}
+  let didMigrate = false
+  for (const [key, raw] of Object.entries(parsed.items)) {
+    const r = raw as { label?: string; name?: string; qty: number; addedAt: string; category?: string | null }
+    if (key.startsWith('cat:') || key.startsWith('bc:')) {
+      out[key] = {
+        label: r.label ?? r.name ?? '(unnamed)',
+        qty: r.qty,
+        addedAt: r.addedAt,
+        category: r.category ?? (key.startsWith('cat:') ? key.slice(4) : null),
+      }
+      continue
+    }
+    didMigrate = true
+    const newKey = `bc:${key}`
+    const existing = out[newKey]
+    out[newKey] = {
+      label: r.name ?? r.label ?? '(unnamed)',
+      qty: (existing?.qty ?? 0) + r.qty,
+      addedAt: existing?.addedAt ?? r.addedAt,
+      category: null,
+    }
+  }
+  return { items: out, didMigrate }
+}
+
+function migrateCatalog(parsed: { version?: number; products: Record<string, unknown> }): {
+  products: Record<string, import('../types').CatalogEntry>
+  didMigrate: boolean
+} {
+  const out: Record<string, import('../types').CatalogEntry> = {}
+  let didMigrate = false
+  for (const [barcode, raw] of Object.entries(parsed.products)) {
+    const r = raw as { name: string; brand: string; category?: string | null; source: 'off' | 'manual'; cachedAt: string }
+    if (r.category === undefined) didMigrate = true
+    out[barcode] = {
+      name: r.name,
+      brand: r.brand,
+      category: r.category ?? null,
+      source: r.source,
+      cachedAt: r.cachedAt,
+    }
+  }
+  return { products: out, didMigrate }
 }
 
 if (typeof window !== 'undefined') {

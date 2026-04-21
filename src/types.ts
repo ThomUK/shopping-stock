@@ -8,14 +8,16 @@ export interface StockItem {
 }
 
 export interface ShoppingItem {
-  name: string
+  label: string
   qty: number
   addedAt: string
+  category: string | null
 }
 
 export interface CatalogEntry {
   name: string
   brand: string
+  category: string | null
   source: 'off' | 'manual'
   cachedAt: string
 }
@@ -26,7 +28,7 @@ export interface StockFile {
 }
 
 export interface ShoppingListFile {
-  version: 1
+  version: 2
   items: Record<string, ShoppingItem>
 }
 
@@ -43,3 +45,9 @@ export interface AuthConfig {
 }
 
 export type DataPath = 'stock.json' | 'shopping-list.json' | 'catalog.json'
+
+export const UNCATEGORIZED = 'Uncategorized'
+
+export function shoppingKey(category: string | null | undefined, barcode: string): string {
+  return category ? `cat:${category}` : `bc:${barcode}`
+}

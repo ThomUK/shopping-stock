@@ -20,7 +20,7 @@ export async function fetchProduct(barcode: string): Promise<CatalogEntry | null
     const name = data.product.product_name || data.product.product_name_en || data.product.generic_name || ''
     const brand = (data.product.brands || '').split(',')[0]?.trim() || ''
     if (!name) return null
-    return { name, brand, source: 'off', cachedAt: new Date().toISOString() }
+    return { name, brand, category: null, source: 'off', cachedAt: new Date().toISOString() }
   } catch {
     return null
   }

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { store, stockEntries, shoppingEntries } from '../state/store'
+import { store, stockTotal, shoppingTotal } from '../state/store'
 import { loadAuth } from '../services/auth'
 
 const configured = computed(() => Boolean(loadAuth()))
-const stockTotal = computed(() => stockEntries.value.reduce((s, [, v]) => s + v.qty, 0))
-const shoppingTotal = computed(() => shoppingEntries.value.reduce((s, [, v]) => s + v.qty, 0))
 </script>
 
 <template>

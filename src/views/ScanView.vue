@@ -31,10 +31,10 @@ async function onDetect(barcode: string) {
   showToast(`${verb}: ${outcome.product?.name ?? barcode}`)
 }
 
-function onManualSubmit(name: string, brand: string) {
+function onManualSubmit(name: string, brand: string, category: string | null) {
   if (!pendingManual.value) return
   const { barcode, mode } = pendingManual.value
-  const outcome = completeManualScan(barcode, mode, name, brand)
+  const outcome = completeManualScan(barcode, mode, name, brand, category)
   pendingManual.value = null
   const verb = mode === 'stockUp' ? 'Added to stock' : 'Used up — on shopping list'
   showToast(`${verb}: ${outcome.product?.name ?? barcode}`)
