@@ -1,17 +1,20 @@
 import { onBeforeUnmount, ref, shallowRef } from 'vue'
 import { startScanner } from '../services/scanner'
+import { prepareAudio } from '../services/audio'
 
 export function useScanner() {
   const error = ref<string | null>(null)
   const running = ref(false)
   const torchOn = ref(false)
   const supportsTorch = ref(false)
+  const cooldown = ref(false)
   const handle = shallowRef<Awaited<ReturnType<typeof startScanner>> | null>(null)
 
   async function start(video: HTMLVideoElement, onDetect: (code: string) => void) {
     error.value = null
+    void prepareAudio()
     try {
-      const h = await startScanner(video, onDetect)
+      const h = await startScanner(video, onDetect, (active) => { cooldown.value = active })
       handle.value = h
       supportsTorch.value = h.supportsTorch()
       running.value = true
@@ -27,6 +30,7 @@ export function useScanner() {
     handle.value = null
     running.value = false
     torchOn.value = false
+    cooldown.value = false
   }
 
   async function toggleTorch() {
@@ -38,5 +42,5 @@ export function useScanner() {
 
   onBeforeUnmount(stop)
 
-  return { start, stop, toggleTorch, running, torchOn, supportsTorch, error }
+  return { start, stop, toggleTorch, running, torchOn, supportsTorch, cooldown, error }
 }

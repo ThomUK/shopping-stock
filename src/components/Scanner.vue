@@ -4,7 +4,7 @@ import { useScanner } from '../composables/useScanner'
 
 const emit = defineEmits<{ detect: [code: string] }>()
 const video = ref<HTMLVideoElement | null>(null)
-const { start, stop, toggleTorch, running, torchOn, supportsTorch, error } = useScanner()
+const { start, stop, toggleTorch, running, torchOn, supportsTorch, cooldown, error } = useScanner()
 
 onMounted(async () => {
   if (!video.value) return
@@ -18,10 +18,12 @@ defineExpose({ stop })
   <div class="col">
     <div class="video-wrap">
       <video ref="video" playsinline muted autoplay></video>
-      <div class="reticle" aria-hidden="true"></div>
+      <div class="reticle" :class="{ ok: cooldown }" aria-hidden="true"></div>
+      <div v-if="cooldown" class="scanned-chip" aria-live="polite">Scanned ✓</div>
     </div>
     <div class="row between">
-      <span class="muted" v-if="running">Point the camera at a barcode.</span>
+      <span class="muted" v-if="cooldown">Ready for next in a moment…</span>
+      <span class="muted" v-else-if="running">Point the camera at a barcode.</span>
       <span class="muted" v-else-if="!error">Starting camera…</span>
       <span class="error" v-if="error">{{ error }}</span>
       <button v-if="supportsTorch" @click="toggleTorch" class="ghost">

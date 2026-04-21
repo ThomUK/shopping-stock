@@ -1,4 +1,7 @@
+import { playBeep } from './audio'
+
 type OnDetect = (barcode: string) => void
+type OnCooldownChange = (active: boolean) => void
 
 interface ScannerHandle {
   stop: () => void
@@ -6,7 +9,9 @@ interface ScannerHandle {
   supportsTorch: () => boolean
 }
 
-const DUPLICATE_WINDOW_MS = 2500
+export const CONFIRM_COUNT = 2
+export const CONFIRM_WINDOW_MS = 500
+export const COOLDOWN_MS = 3000
 
 interface NativeBarcodeDetector {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue: string; format: string }>>
@@ -46,7 +51,46 @@ function attachTorch(track: MediaStreamTrack): { supportsTorch: () => boolean; s
   }
 }
 
-export async function startScanner(video: HTMLVideoElement, onDetect: OnDetect): Promise<ScannerHandle> {
+interface Observer {
+  observe: (code: string) => void
+}
+
+export function createObserver(onDetect: OnDetect, onCooldownChange: OnCooldownChange, clock: () => number = Date.now): Observer {
+  let candidate = ''
+  let count = 0
+  let windowStart = 0
+  let cooldownUntil = 0
+
+  return {
+    observe(code: string) {
+      if (!code) return
+      const now = clock()
+      if (now < cooldownUntil) return
+      if (code !== candidate || now - windowStart > CONFIRM_WINDOW_MS) {
+        candidate = code
+        count = 1
+        windowStart = now
+        return
+      }
+      count++
+      if (count < CONFIRM_COUNT) return
+      cooldownUntil = now + COOLDOWN_MS
+      candidate = ''
+      count = 0
+      if (navigator.vibrate) navigator.vibrate(50)
+      playBeep()
+      onCooldownChange(true)
+      onDetect(code)
+      setTimeout(() => onCooldownChange(false), COOLDOWN_MS)
+    },
+  }
+}
+
+export async function startScanner(
+  video: HTMLVideoElement,
+  onDetect: OnDetect,
+  onCooldownChange: OnCooldownChange = () => {},
+): Promise<ScannerHandle> {
   const stream = await getStream()
   video.srcObject = stream
   video.setAttribute('playsinline', 'true')
@@ -54,19 +98,9 @@ export async function startScanner(video: HTMLVideoElement, onDetect: OnDetect):
   await video.play()
   const track = stream.getVideoTracks()[0]
   const torch = attachTorch(track)
+  const { observe } = createObserver(onDetect, onCooldownChange)
 
-  let lastCode = ''
-  let lastTs = 0
   let stopped = false
-  const fire = (code: string) => {
-    const now = Date.now()
-    if (code === lastCode && now - lastTs < DUPLICATE_WINDOW_MS) return
-    lastCode = code
-    lastTs = now
-    if (navigator.vibrate) navigator.vibrate(50)
-    onDetect(code)
-  }
-
   let cleanup: () => void = () => {}
 
   if (window.BarcodeDetector) {
@@ -85,7 +119,7 @@ export async function startScanner(video: HTMLVideoElement, onDetect: OnDetect):
           canvas.height = video.videoHeight
           ctx.drawImage(video, 0, 0)
           const hits = await detector.detect(canvas)
-          if (hits.length > 0 && hits[0].rawValue) fire(hits[0].rawValue)
+          if (hits.length > 0 && hits[0].rawValue) observe(hits[0].rawValue)
         }
       } catch {
         // swallow per-frame errors
@@ -98,7 +132,7 @@ export async function startScanner(video: HTMLVideoElement, onDetect: OnDetect):
     const { BrowserMultiFormatReader } = await import('@zxing/browser')
     const reader = new BrowserMultiFormatReader()
     const controls = await reader.decodeFromVideoElement(video, (result) => {
-      if (result) fire(result.getText())
+      if (result) observe(result.getText())
     })
     cleanup = () => controls.stop()
   }
