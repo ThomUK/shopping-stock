@@ -30,12 +30,6 @@ export interface StockGroup {
   items: Array<{ barcode: string; item: StockItem }>
 }
 
-export interface ShoppingGroup {
-  category: string
-  total: number
-  items: Array<{ key: string; item: ShoppingItem }>
-}
-
 function categoryFor(barcode: string): string {
   return store.catalog[barcode]?.category || UNCATEGORIZED
 }
@@ -77,25 +71,6 @@ export const catalogGroups = computed<CatalogGroup[]>(() => {
   }
   for (const g of groups.values()) {
     g.items.sort((a, b) => a.entry.name.localeCompare(b.entry.name))
-  }
-  return Array.from(groups.values()).sort(sortGroups)
-})
-
-export const shoppingGroups = computed<ShoppingGroup[]>(() => {
-  const groups = new Map<string, ShoppingGroup>()
-  for (const [key, item] of Object.entries(store.shoppingList)) {
-    if (item.qty <= 0) continue
-    const category = item.category || UNCATEGORIZED
-    let g = groups.get(category)
-    if (!g) {
-      g = { category, total: 0, items: [] }
-      groups.set(category, g)
-    }
-    g.total += item.qty
-    g.items.push({ key, item })
-  }
-  for (const g of groups.values()) {
-    g.items.sort((a, b) => a.item.label.localeCompare(b.item.label))
   }
   return Array.from(groups.values()).sort(sortGroups)
 })

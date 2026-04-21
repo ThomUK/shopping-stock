@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { stockGroups, shoppingGroups, catalogGroups } from '../state/store'
+import { stockGroups, catalogGroups, store } from '../state/store'
 import { manualAdjustStock, decrementShoppingKey, removeShoppingKey } from '../state/mutations'
 import EditItem from '../components/EditItem.vue'
 
@@ -22,6 +22,16 @@ function setTab(next: Tab) {
 
 const expanded = ref<Set<string>>(new Set())
 const editing = ref<string | null>(null)
+
+const shoppingFlat = computed(() =>
+  Object.entries(store.shoppingList)
+    .filter(([, item]) => item.qty > 0)
+    .map(([key, item]) => ({ key, item }))
+    .sort((a, b) => {
+      if (!!a.item.category !== !!b.item.category) return a.item.category ? -1 : 1
+      return a.item.label.localeCompare(b.item.label)
+    }),
+)
 
 watch(tab, () => { expanded.value = new Set() })
 
@@ -77,32 +87,20 @@ function toggle(category: string) {
 
     <section class="card" v-if="tab === 'shopping' && !editing">
       <h2>Shopping list</h2>
-      <p class="muted" v-if="shoppingGroups.length === 0">Empty. Items are added when you scan in "Using up" mode.</p>
-      <div v-for="group in shoppingGroups" :key="group.category">
-        <div class="item" @click="toggle(group.category)" style="cursor: pointer">
-          <div>
-            <div><strong>{{ group.category }}</strong></div>
-            <div class="meta">
-              need {{ group.total }} · {{ group.items.length }} {{ group.items.length === 1 ? 'entry' : 'entries' }}
-            </div>
-          </div>
-          <span class="muted">{{ expanded.has(group.category) ? '▾' : '▸' }}</span>
+      <p class="muted" v-if="shoppingFlat.length === 0">Empty. Items are added when you scan in "Using up" mode.</p>
+      <div class="item" v-for="{ key, item } in shoppingFlat" :key="key">
+        <div>
+          <div><strong>{{ item.label }}</strong></div>
+          <div class="meta" v-if="!item.category">Uncategorized</div>
         </div>
-        <div v-if="expanded.has(group.category)" style="padding: 0 0 .5rem 1rem">
-          <div class="item" v-for="{ key, item } in group.items" :key="key">
-            <div>
-              <div>{{ item.label }}</div>
-              <div class="meta">need {{ item.qty }}</div>
-            </div>
-            <div class="row">
-              <button class="ghost" @click="decrementShoppingKey(key)" aria-label="Decrement need">−1</button>
-              <button class="ghost" @click="removeShoppingKey(key)" aria-label="Remove">Remove</button>
-            </div>
-          </div>
+        <div class="row">
+          <span class="pill">need {{ item.qty }}</span>
+          <button class="ghost" @click="decrementShoppingKey(key)" aria-label="Decrement">−1</button>
+          <button class="ghost" @click="removeShoppingKey(key)" aria-label="Remove">✕</button>
         </div>
       </div>
-      <p class="muted" v-if="shoppingGroups.length > 0" style="margin-top: .5rem">
-        To tick items off, scan them in "Stocking up" mode — the matching category's need drops automatically.
+      <p class="muted" v-if="shoppingFlat.length > 0" style="margin-top: .5rem">
+        To tick items off, scan them in "Stocking up" mode — any brand in the matching category decrements the need.
       </p>
     </section>
 
