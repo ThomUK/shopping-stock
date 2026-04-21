@@ -1,12 +1,29 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { stockGroups, shoppingGroups } from '../state/store'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { stockGroups, shoppingGroups, catalogGroups } from '../state/store'
 import { manualAdjustStock, decrementShoppingKey, removeShoppingKey } from '../state/mutations'
 import EditItem from '../components/EditItem.vue'
 
-const tab = ref<'stock' | 'shopping'>('stock')
+type Tab = 'stock' | 'shopping' | 'products'
+
+const route = useRoute()
+const router = useRouter()
+
+const tab = computed<Tab>(() => {
+  const t = route.query.tab
+  if (t === 'shopping' || t === 'products' || t === 'stock') return t
+  return 'stock'
+})
+
+function setTab(next: Tab) {
+  router.replace({ query: { ...route.query, tab: next } })
+}
+
 const expanded = ref<Set<string>>(new Set())
 const editing = ref<string | null>(null)
+
+watch(tab, () => { expanded.value = new Set() })
 
 function toggle(category: string) {
   if (expanded.value.has(category)) expanded.value.delete(category)
@@ -18,8 +35,9 @@ function toggle(category: string) {
 <template>
   <section class="col">
     <div class="mode-toggle" role="tablist" aria-label="List view">
-      <button :class="{ active: tab === 'stock' }" @click="tab = 'stock'" role="tab">Stock</button>
-      <button :class="{ active: tab === 'shopping' }" @click="tab = 'shopping'" role="tab">Shopping list</button>
+      <button :class="{ active: tab === 'stock' }" @click="setTab('stock')" role="tab">Stock</button>
+      <button :class="{ active: tab === 'shopping' }" @click="setTab('shopping')" role="tab">Shopping</button>
+      <button :class="{ active: tab === 'products' }" @click="setTab('products')" role="tab">Products</button>
     </div>
 
     <EditItem v-if="editing" :barcode="editing" @close="editing = null" />
@@ -86,6 +104,32 @@ function toggle(category: string) {
       <p class="muted" v-if="shoppingGroups.length > 0" style="margin-top: .5rem">
         To tick items off, scan them in "Stocking up" mode — the matching category's need drops automatically.
       </p>
+    </section>
+
+    <section class="card" v-if="tab === 'products' && !editing">
+      <h2>Product catalog</h2>
+      <p class="muted" v-if="catalogGroups.length === 0">Empty. Scan something to add your first product.</p>
+      <div v-for="group in catalogGroups" :key="group.category">
+        <div class="item" @click="toggle(group.category)" style="cursor: pointer">
+          <div>
+            <div><strong>{{ group.category }}</strong></div>
+            <div class="meta">{{ group.items.length }} {{ group.items.length === 1 ? 'product' : 'products' }}</div>
+          </div>
+          <span class="muted">{{ expanded.has(group.category) ? '▾' : '▸' }}</span>
+        </div>
+        <div v-if="expanded.has(group.category)" style="padding: 0 0 .5rem 1rem">
+          <div class="item" v-for="{ barcode, entry, stockQty } in group.items" :key="barcode">
+            <div>
+              <div>{{ entry.name }}</div>
+              <div class="meta">{{ entry.brand || '—' }} · {{ barcode }}</div>
+            </div>
+            <div class="row">
+              <span class="pill" :class="stockQty > 0 ? 'online' : ''">{{ stockQty }} in stock</span>
+              <button class="ghost" @click="editing = barcode">Edit</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   </section>
 </template>

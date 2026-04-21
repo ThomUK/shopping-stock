@@ -40,6 +40,11 @@ function categoryFor(barcode: string): string {
   return store.catalog[barcode]?.category || UNCATEGORIZED
 }
 
+export interface CatalogGroup {
+  category: string
+  items: Array<{ barcode: string; entry: CatalogEntry; stockQty: number }>
+}
+
 export const stockGroups = computed<StockGroup[]>(() => {
   const groups = new Map<string, StockGroup>()
   for (const [barcode, item] of Object.entries(store.stock)) {
@@ -55,6 +60,23 @@ export const stockGroups = computed<StockGroup[]>(() => {
   }
   for (const g of groups.values()) {
     g.items.sort((a, b) => a.item.name.localeCompare(b.item.name))
+  }
+  return Array.from(groups.values()).sort(sortGroups)
+})
+
+export const catalogGroups = computed<CatalogGroup[]>(() => {
+  const groups = new Map<string, CatalogGroup>()
+  for (const [barcode, entry] of Object.entries(store.catalog)) {
+    const category = entry.category || UNCATEGORIZED
+    let g = groups.get(category)
+    if (!g) {
+      g = { category, items: [] }
+      groups.set(category, g)
+    }
+    g.items.push({ barcode, entry, stockQty: store.stock[barcode]?.qty ?? 0 })
+  }
+  for (const g of groups.values()) {
+    g.items.sort((a, b) => a.entry.name.localeCompare(b.entry.name))
   }
   return Array.from(groups.values()).sort(sortGroups)
 })
@@ -83,6 +105,8 @@ function sortGroups(a: { category: string }, b: { category: string }): number {
   if (b.category === UNCATEGORIZED) return -1
   return a.category.localeCompare(b.category)
 }
+
+export const productsTotal = computed(() => Object.keys(store.catalog).length)
 
 export const knownCategories = computed<string[]>(() => {
   const set = new Set<string>()

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { store, stockTotal, shoppingTotal } from '../state/store'
+import { stockTotal, shoppingTotal, productsTotal } from '../state/store'
 import { loadAuth } from '../services/auth'
 
 const configured = computed(() => Boolean(loadAuth()))
@@ -9,19 +9,19 @@ const configured = computed(() => Boolean(loadAuth()))
 <template>
   <section class="card col">
     <h1>At a glance</h1>
-    <div class="row between">
-      <div>
+    <div class="row between tiles">
+      <router-link to="/list?tab=stock" class="tile">
         <div class="muted">In stock</div>
-        <div style="font-size: 2rem; font-weight: 600">{{ stockTotal }}</div>
-      </div>
-      <div>
+        <div class="tile-num">{{ stockTotal }}</div>
+      </router-link>
+      <router-link to="/list?tab=shopping" class="tile">
         <div class="muted">Shopping list</div>
-        <div style="font-size: 2rem; font-weight: 600">{{ shoppingTotal }}</div>
-      </div>
-      <div>
+        <div class="tile-num">{{ shoppingTotal }}</div>
+      </router-link>
+      <router-link to="/list?tab=products" class="tile">
         <div class="muted">Products</div>
-        <div style="font-size: 2rem; font-weight: 600">{{ Object.keys(store.catalog).length }}</div>
-      </div>
+        <div class="tile-num">{{ productsTotal }}</div>
+      </router-link>
     </div>
   </section>
 
