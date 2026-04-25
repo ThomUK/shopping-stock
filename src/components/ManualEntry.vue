@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { knownCategories } from '../state/store'
+import CategoryInput from './CategoryInput.vue'
 
 const props = defineProps<{ barcode: string }>()
 const emit = defineEmits<{
@@ -32,10 +33,12 @@ function onSubmit() {
     </div>
     <div>
       <label for="category">Category (optional)</label>
-      <input id="category" v-model="category" type="text" list="known-categories" placeholder="e.g. Beans" />
-      <datalist id="known-categories">
-        <option v-for="c in knownCategories" :key="c" :value="c" />
-      </datalist>
+      <CategoryInput
+        v-model="category"
+        input-id="category"
+        :options="knownCategories"
+        placeholder="e.g. Beans"
+      />
       <p class="muted" style="font-size: .75rem; margin-top: .25rem">
         Items in the same category group together on the stock and shopping list.
       </p>

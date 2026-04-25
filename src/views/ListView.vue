@@ -13,7 +13,7 @@ const router = useRouter()
 const tab = computed<Tab>(() => {
   const t = route.query.tab
   if (t === 'shopping' || t === 'products' || t === 'stock') return t
-  return 'stock'
+  return 'products'
 })
 
 function setTab(next: Tab) {
@@ -73,9 +73,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 <template>
   <section class="col">
     <div class="mode-toggle" role="tablist" aria-label="List view">
-      <button :class="{ active: tab === 'stock' }" @click="setTab('stock')" role="tab">Stock</button>
-      <button :class="{ active: tab === 'shopping' }" @click="setTab('shopping')" role="tab">Shopping</button>
       <button :class="{ active: tab === 'products' }" @click="setTab('products')" role="tab">Products</button>
+      <button :class="{ active: tab === 'stock' }" @click="setTab('stock')" role="tab">Stock</button>
+      <button :class="{ active: tab === 'shopping' }" @click="setTab('shopping')" role="tab">Shopping list</button>
     </div>
 
     <EditItem v-if="editing" :barcode="editing" @close="editing = null" />

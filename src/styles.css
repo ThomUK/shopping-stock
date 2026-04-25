@@ -176,6 +176,36 @@ label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .
   box-shadow: 0 4px 12px rgba(0,0,0,.25);
 }
 
+.cat-input {
+  position: relative;
+}
+.cat-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: .25rem 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: .6rem;
+  box-shadow: 0 8px 22px rgba(0,0,0,.18);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 50;
+  -webkit-overflow-scrolling: touch;
+}
+.cat-list li {
+  padding: .65rem .75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.cat-list li:last-child { border-bottom: none; }
+.cat-list li:hover, .cat-list li:focus {
+  background: rgba(31, 111, 235, .12);
+}
+
 .shopping-row {
   display: flex;
   align-items: center;

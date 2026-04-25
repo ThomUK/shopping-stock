@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { store, knownCategories } from '../state/store'
 import { updateCatalogEntry, deleteCatalogEntry } from '../state/mutations'
+import CategoryInput from './CategoryInput.vue'
 
 const props = defineProps<{ barcode: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -55,10 +56,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     </div>
     <div>
       <label for="edit-category">Category</label>
-      <input id="edit-category" v-model="category" type="text" list="known-categories-edit" placeholder="e.g. Beans" />
-      <datalist id="known-categories-edit">
-        <option v-for="c in knownCategories" :key="c" :value="c" />
-      </datalist>
+      <CategoryInput
+        v-model="category"
+        input-id="edit-category"
+        :options="knownCategories"
+        placeholder="e.g. Beans"
+      />
       <p class="muted" style="font-size: .75rem; margin-top: .25rem">
         Clearing this moves the item to Uncategorized. Any outstanding shopping entry re-keys automatically.
       </p>
