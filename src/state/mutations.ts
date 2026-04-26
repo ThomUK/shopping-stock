@@ -4,24 +4,26 @@ import { markPathDirty, scheduleSync } from '../services/sync'
 import type { CatalogEntry, ScanMode, StockItem } from '../types'
 import { shoppingKey } from '../types'
 
+export interface ProductSuggestion {
+  source: 'off' | 'none'
+  name: string
+  brand: string
+}
+
 interface ScanOutcome {
   barcode: string
   mode: ScanMode
   product: CatalogEntry | null
   needsManualEntry: boolean
+  suggestion: ProductSuggestion
 }
 
-export async function resolveProduct(barcode: string): Promise<CatalogEntry | null> {
+async function resolveProduct(barcode: string): Promise<{ existing: CatalogEntry | null; suggestion: ProductSuggestion }> {
   const cached = store.catalog[barcode]
-  if (cached) return cached
+  if (cached) return { existing: cached, suggestion: { source: 'none', name: '', brand: '' } }
   const fromOff = await fetchProduct(barcode)
-  if (fromOff) {
-    store.catalog[barcode] = fromOff
-    markPathDirty('catalog.json')
-    scheduleSync()
-    return fromOff
-  }
-  return null
+  if (fromOff) return { existing: null, suggestion: { source: 'off', name: fromOff.name, brand: fromOff.brand } }
+  return { existing: null, suggestion: { source: 'none', name: '', brand: '' } }
 }
 
 export function saveManualProduct(
@@ -78,13 +80,13 @@ export function updateCatalogEntry(
 }
 
 export async function applyScan(barcode: string, mode: ScanMode): Promise<ScanOutcome> {
-  const product = await resolveProduct(barcode)
-  if (!product) {
+  const { existing, suggestion } = await resolveProduct(barcode)
+  if (!existing) {
     store.lastScan = { barcode, mode, at: Date.now() }
-    return { barcode, mode, product: null, needsManualEntry: true }
+    return { barcode, mode, product: null, needsManualEntry: true, suggestion }
   }
-  applyResolvedScan(barcode, mode, product)
-  return { barcode, mode, product, needsManualEntry: false }
+  applyResolvedScan(barcode, mode, existing)
+  return { barcode, mode, product: existing, needsManualEntry: false, suggestion }
 }
 
 export function completeManualScan(
@@ -96,7 +98,7 @@ export function completeManualScan(
 ): ScanOutcome {
   const product = saveManualProduct(barcode, name, brand, category)
   applyResolvedScan(barcode, mode, product)
-  return { barcode, mode, product, needsManualEntry: false }
+  return { barcode, mode, product, needsManualEntry: false, suggestion: { source: 'none', name: '', brand: '' } }
 }
 
 function applyResolvedScan(barcode: string, mode: ScanMode, product: CatalogEntry): void {

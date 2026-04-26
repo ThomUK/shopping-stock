@@ -91,6 +91,14 @@ export const knownCategories = computed<string[]>(() => {
   return Array.from(set).sort((a, b) => a.localeCompare(b))
 })
 
+export const activeShoppingCategories = computed<string[]>(() => {
+  const set = new Set<string>()
+  for (const item of Object.values(store.shoppingList)) {
+    if (item.qty > 0 && item.category) set.add(item.category)
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b))
+})
+
 export const stockTotal = computed(() =>
   Object.values(store.stock).reduce((s, v) => s + (v.qty > 0 ? v.qty : 0), 0),
 )

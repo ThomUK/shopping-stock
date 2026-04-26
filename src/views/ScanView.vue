@@ -7,7 +7,13 @@ import { store } from '../state/store'
 import { applyScan, completeManualScan } from '../state/mutations'
 import type { ScanMode } from '../types'
 
-interface PendingManual { barcode: string; mode: ScanMode }
+interface PendingManual {
+  barcode: string
+  mode: ScanMode
+  suggestionName: string
+  suggestionBrand: string
+  source: 'off' | 'none'
+}
 
 const toast = ref<string | null>(null)
 const pendingManual = ref<PendingManual | null>(null)
@@ -24,7 +30,13 @@ async function onDetect(barcode: string) {
   if (pendingManual.value) return
   const outcome = await applyScan(barcode, store.mode)
   if (outcome.needsManualEntry) {
-    pendingManual.value = { barcode, mode: store.mode }
+    pendingManual.value = {
+      barcode,
+      mode: store.mode,
+      suggestionName: outcome.suggestion.name,
+      suggestionBrand: outcome.suggestion.brand,
+      source: outcome.suggestion.source,
+    }
     return
   }
   const verb = store.mode === 'stockUp' ? 'Added to stock' : 'Used up — on shopping list'
@@ -59,6 +71,9 @@ function submitManualBarcode() {
     <ManualEntry
       v-if="pendingManual"
       :barcode="pendingManual.barcode"
+      :default-name="pendingManual.suggestionName"
+      :default-brand="pendingManual.suggestionBrand"
+      :source="pendingManual.source"
       @submit="onManualSubmit"
       @cancel="onManualCancel"
     />
