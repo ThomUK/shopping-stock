@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { stockTotal, shoppingTotal, productsTotal } from '../state/store'
+import { stockTotal, shoppingTotal, productsTotal, offTodoCount } from '../state/store'
 import { loadAuth } from '../services/auth'
 
 const configured = computed(() => Boolean(loadAuth()))
@@ -22,6 +22,18 @@ const configured = computed(() => Boolean(loadAuth()))
         <div class="muted">Products</div>
         <div class="tile-num">{{ productsTotal }}</div>
       </router-link>
+    </div>
+  </section>
+
+  <section class="card col" v-if="offTodoCount > 0">
+    <h2>Help OpenFoodFacts</h2>
+    <p class="muted">
+      <strong>{{ offTodoCount }}</strong>
+      {{ offTodoCount === 1 ? 'product needs' : 'products need' }} adding to OpenFoodFacts so future scans
+      auto-fill for everyone.
+    </p>
+    <div class="row">
+      <router-link to="/contribute"><button class="primary">View list</button></router-link>
     </div>
   </section>
 

@@ -20,6 +20,7 @@ export interface CatalogEntry {
   category: string | null
   source: 'off' | 'manual'
   cachedAt: string
+  needsOffSubmission?: boolean
 }
 
 export interface StockFile {

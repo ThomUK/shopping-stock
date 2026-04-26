@@ -38,11 +38,21 @@ export function saveManualProduct(
     category: category?.trim() || null,
     source: 'manual',
     cachedAt: new Date().toISOString(),
+    needsOffSubmission: true,
   }
   store.catalog[barcode] = entry
   markPathDirty('catalog.json')
   scheduleSync()
   return entry
+}
+
+export function markOffSubmitted(barcode: string): void {
+  const existing = store.catalog[barcode]
+  if (!existing || !existing.needsOffSubmission) return
+  const { needsOffSubmission: _ignored, ...rest } = existing
+  store.catalog[barcode] = { ...rest, cachedAt: new Date().toISOString() }
+  markPathDirty('catalog.json')
+  scheduleSync()
 }
 
 export function updateCatalogEntry(

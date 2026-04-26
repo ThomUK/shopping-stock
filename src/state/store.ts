@@ -83,6 +83,20 @@ function sortGroups(a: { category: string }, b: { category: string }): number {
 
 export const productsTotal = computed(() => Object.keys(store.catalog).length)
 
+export interface OffTodoEntry {
+  barcode: string
+  entry: CatalogEntry
+}
+
+export const offTodoEntries = computed<OffTodoEntry[]>(() =>
+  Object.entries(store.catalog)
+    .filter(([, e]) => e.needsOffSubmission)
+    .map(([barcode, entry]) => ({ barcode, entry }))
+    .sort((a, b) => a.entry.name.localeCompare(b.entry.name)),
+)
+
+export const offTodoCount = computed(() => offTodoEntries.value.length)
+
 export const knownCategories = computed<string[]>(() => {
   const set = new Set<string>()
   for (const entry of Object.values(store.catalog)) {

@@ -162,15 +162,17 @@ function migrateCatalog(parsed: { version?: number; products: Record<string, unk
   const out: Record<string, import('../types').CatalogEntry> = {}
   let didMigrate = false
   for (const [barcode, raw] of Object.entries(parsed.products)) {
-    const r = raw as { name: string; brand: string; category?: string | null; source: 'off' | 'manual'; cachedAt: string }
+    const r = raw as { name: string; brand: string; category?: string | null; source: 'off' | 'manual'; cachedAt: string; needsOffSubmission?: boolean }
     if (r.category === undefined) didMigrate = true
-    out[barcode] = {
+    const entry: import('../types').CatalogEntry = {
       name: r.name,
       brand: r.brand,
       category: r.category ?? null,
       source: r.source,
       cachedAt: r.cachedAt,
     }
+    if (r.needsOffSubmission) entry.needsOffSubmission = true
+    out[barcode] = entry
   }
   return { products: out, didMigrate }
 }
