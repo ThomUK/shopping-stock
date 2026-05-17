@@ -137,7 +137,7 @@ function adjustShopping(barcode: string, delta: number, product: CatalogEntry): 
   const label = labelFor(product)
   const nextQty = Math.max(0, (existing?.qty ?? 0) + delta)
   if (nextQty === 0 && !existing) return
-  if (nextQty === 0) {
+  if (nextQty === 0 && categoryHasStock(product.category, barcode)) {
     delete store.shoppingList[key]
   } else {
     store.shoppingList[key] = {
@@ -148,6 +148,15 @@ function adjustShopping(barcode: string, delta: number, product: CatalogEntry): 
     }
   }
   markPathDirty('shopping-list.json')
+}
+
+function categoryHasStock(category: string | null, fallbackBarcode: string): boolean {
+  if (!category) return (store.stock[fallbackBarcode]?.qty ?? 0) > 0
+  for (const [bc, item] of Object.entries(store.stock)) {
+    if (item.qty <= 0) continue
+    if ((store.catalog[bc]?.category ?? null) === category) return true
+  }
+  return false
 }
 
 function labelFor(product: CatalogEntry): string {
